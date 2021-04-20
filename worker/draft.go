@@ -1382,15 +1382,15 @@ func (n *node) Run() {
 				}()
 				firstRun = false
 			}
-			if span != nil {
-				span.Annotate(nil, "Advanced Raft. Done.")
-				span.End()
-				if err := ostats.RecordWithTags(context.Background(),
-					[]tag.Mutator{tag.Upsert(x.KeyMethod, "alpha.RunLoop")},
-					x.LatencyMs.M(float64(timer.Total())/1e6)); err != nil {
-					glog.Errorf("Error recording stats: %+v", err)
-				}
-			}
+			// if span != nil {
+			// 	span.Annotate(nil, "Advanced Raft. Done.")
+			// 	span.End()
+			// 	if err := ostats.RecordWithTags(context.Background(),
+			// 		[]tag.Mutator{tag.Upsert(x.KeyMethod, "alpha.RunLoop")},
+			// 		x.LatencyMs.M(float64(timer.Total())/1e6)); err != nil {
+			// 		glog.Errorf("Error recording stats: %+v", err)
+			// 	}
+			// }
 			if timer.Total() > 5*tickDur {
 				glog.Warningf(
 					"Raft.Ready took too long to process: %s"+
