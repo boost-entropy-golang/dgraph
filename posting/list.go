@@ -37,6 +37,7 @@ import (
 	"github.com/dgraph-io/dgraph/types/facets"
 	"github.com/dgraph-io/dgraph/x"
 	"github.com/dgraph-io/ristretto/z"
+	"github.com/golang/glog"
 	"github.com/golang/protobuf/proto"
 )
 
@@ -1130,6 +1131,7 @@ func (l *List) Uids(opt ListOptions) (*pb.List, error) {
 		return out, nil
 	}
 
+	glog.Infof("==> Key: %#x", l.key)
 	err := l.iterate(opt.ReadTs, opt.AfterUid, func(p *pb.Posting) error {
 		if p.PostingType == pb.Posting_REF {
 			res = append(res, p.Uid)
@@ -1145,6 +1147,7 @@ func (l *List) Uids(opt ListOptions) (*pb.List, error) {
 		}
 		return nil
 	})
+	glog.Infof("==> Key done: %#x len:%d", l.key, len(res))
 	l.RUnlock()
 	if err != nil {
 		return out, errors.Wrapf(err, "cannot retrieve UIDs from list with key %s",
