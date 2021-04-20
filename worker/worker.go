@@ -181,5 +181,6 @@ func UpdateLogRequest(val bool) {
 
 // LogRequestEnabled returns true if logging of requests is enabled otherwise false.
 func LogRequestEnabled() bool {
-	return atomic.LoadInt32(&x.WorkerConfig.LogRequest) > 0
+	return true
+	// return atomic.LoadInt32(&x.WorkerConfig.LogRequest) > 0
 }
