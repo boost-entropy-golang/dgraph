@@ -19,6 +19,7 @@ package main
 import (
 	"math/rand"
 	"runtime"
+	"runtime/metrics"
 	"time"
 
 	"github.com/dgraph-io/dgraph/dgraph/cmd"
@@ -26,6 +27,65 @@ import (
 	"github.com/dustin/go-humanize"
 	"github.com/golang/glog"
 )
+
+func mymetrics() {
+	// Get descriptions for all supported metrics.
+	descs := metrics.All()
+
+	// Create a sample for each metric.
+	samples := make([]metrics.Sample, len(descs))
+	for i := range samples {
+		samples[i].Name = descs[i].Name
+	}
+
+	// Sample the metrics. Re-use the samples slice if you can!
+	metrics.Read(samples)
+
+	// Iterate over all results.
+	for _, sample := range samples {
+		// Pull out the name and value.
+		name, value := sample.Name, sample.Value
+
+		// Handle each sample.
+		switch value.Kind() {
+		case metrics.KindUint64:
+			glog.Infof("%s: %d\n", name, value.Uint64())
+		case metrics.KindFloat64:
+			glog.Infof("%s: %f\n", name, value.Float64())
+		case metrics.KindFloat64Histogram:
+			// The histogram may be quite large, so let's just pull out
+			// a crude estimate for the median for the sake of this example.
+			glog.Infof("%s: %f\n", name, medianBucket(value.Float64Histogram()))
+		case metrics.KindBad:
+			// This should never happen because all metrics are supported
+			// by construction.
+			panic("bug in runtime/metrics package!")
+		default:
+			// This may happen as new metrics get added.
+			//
+			// The safest thing to do here is to simply log it somewhere
+			// as something to look into, but ignore it for now.
+			// In the worst case, you might temporarily miss out on a new metric.
+			glog.Infof("%s: unexpected metric Kind: %v\n", name, value.Kind())
+		}
+	}
+}
+
+func medianBucket(h *metrics.Float64Histogram) float64 {
+	total := uint64(0)
+	for _, count := range h.Counts {
+		total += count
+	}
+	thresh := total / 2
+	total = 0
+	for i, count := range h.Counts {
+		total += count
+		if total >= thresh {
+			return h.Buckets[i]
+		}
+	}
+	panic("should not happen")
+}
 
 func main() {
 	rand.Seed(time.Now().UnixNano())
@@ -52,22 +112,23 @@ func main() {
 		var lastNumGC uint32
 
 		var js z.MemStats
-		var lastAlloc uint64
+		// var lastAlloc uint64
 
 		for range ticker.C {
 			// Read Jemalloc stats first. Print if there's a big difference.
 			z.ReadMemStats(&js)
-			if diff := absDiff(uint64(z.NumAllocBytes()), lastAlloc); diff > 256<<20 {
-				glog.V(2).Infof("NumAllocBytes: %s jemalloc: Active %s Allocated: %s"+
-					" Resident: %s Retained: %s\n",
-					humanize.IBytes(uint64(z.NumAllocBytes())),
-					humanize.IBytes(js.Active), humanize.IBytes(js.Allocated),
-					humanize.IBytes(js.Resident), humanize.IBytes(js.Retained))
-				lastAlloc = uint64(z.NumAllocBytes())
-			} else {
-				// Don't update the lastJs here.
-			}
+			// if diff := absDiff(uint64(z.NumAllocBytes()), lastAlloc); diff > 256<<20 {
+			glog.V(2).Infof("NumAllocBytes: %s jemalloc: Active %s Allocated: %s"+
+				" Resident: %s Retained: %s\n",
+				humanize.IBytes(uint64(z.NumAllocBytes())),
+				humanize.IBytes(js.Active), humanize.IBytes(js.Allocated),
+				humanize.IBytes(js.Resident), humanize.IBytes(js.Retained))
+			// lastAlloc = uint64(z.NumAllocBytes())
+			// } else {
+			// // Don't update the lastJs here.
+			// }
 
+			mymetrics()
 			runtime.ReadMemStats(&ms)
 			diff := absDiff(ms.HeapAlloc, lastMs.HeapAlloc)
 
