@@ -27,6 +27,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
+	ostats "go.opencensus.io/stats"
 	otrace "go.opencensus.io/trace"
 	"google.golang.org/grpc/metadata"
 
@@ -2744,6 +2745,13 @@ func (req *Request) ProcessQuery(ctx context.Context) (err error) {
 	stop := x.SpanTimer(span, "query.ProcessQuery")
 	defer stop()
 
+	// TODO: Active mutations values can go up or down but with
+	// OpenCensus stats bucket boundaries start from 0, hence
+	// recording negative and positive values skews up values.
+	ostats.Record(ctx, x.ActiveMutations.M(int64(1)))
+	defer func() {
+		ostats.Record(ctx, x.ActiveMutations.M(int64(-1)))
+	}()
 	// Vars stores the processed variables.
 	req.Vars = make(map[string]varValue)
 	loopStart := time.Now()

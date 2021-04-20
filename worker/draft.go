@@ -434,15 +434,15 @@ func (n *node) applyMutations(ctx context.Context, proposal *pb.Proposal) (rerr 
 		}
 	}
 
-	total := len(proposal.Mutations.Edges)
+	// total := len(proposal.Mutations.Edges)
 
-	// TODO: Active mutations values can go up or down but with
-	// OpenCensus stats bucket boundaries start from 0, hence
-	// recording negative and positive values skews up values.
-	ostats.Record(ctx, x.ActiveMutations.M(int64(total)))
-	defer func() {
-		ostats.Record(ctx, x.ActiveMutations.M(int64(-total)))
-	}()
+	// // TODO: Active mutations values can go up or down but with
+	// // OpenCensus stats bucket boundaries start from 0, hence
+	// // recording negative and positive values skews up values.
+	// ostats.Record(ctx, x.ActiveMutations.M(int64(total)))
+	// defer func() {
+	// 	ostats.Record(ctx, x.ActiveMutations.M(int64(-total)))
+	// }()
 
 	// Go through all the predicates and their first observed schema type. If we are unable to find
 	// these predicates in the current schema state, add them to the schema state. Note that the
